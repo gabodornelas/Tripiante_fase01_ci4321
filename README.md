@@ -1,6 +1,6 @@
-# Rotating Cube: FixedFunction and a game loop
+# Torreta arrojadora de esferas: Fase 1
 
-A yellow cube rotates on the Y axis. One directional light shines on it. The example uses the FixedFunction (FF) module, so no shader code appears in the example. The code shows the game loop that drives the animation.
+A torreta standing on a floor throwing sphares on targets. The example uses the FixedFunction (FF) module, so no shader code appears in the example. The code shows the game loop that drives the animation.
 
 ## Requirements
 
