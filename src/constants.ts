@@ -12,7 +12,9 @@ export const COLORS: readonly (readonly [number, number, number, number])[] = [
   [0.36, 0.24, 0.14, 1], // Marrón
   [0.3, 0.3, 0.3, 1],    // gris oscuro
   [1, 0.27, 0, 1],       // anaranjado rojizo
-  [0, 0, 0, 1],          // Negro puro (RGBA normalizado de 0 a 1)
+  [0, 0, 0, 1],          // Negro puro
+  [0.1, 1.0, 0.1, 1],    // Verde claro
+  [0.0, 0.6, 0.1, 1],    // Verde oscuro
 ];
 
 // 24 vertices (4 per face), not 8 corners. A corner is shared by 3 faces, but a vertex holds
@@ -65,44 +67,58 @@ export const INDICES = new Uint16Array([
 export const STRIDE_BYTES = 6 * 4; // 4 bytes per float (Float32)
 export const NORMAL_OFFSET_BYTES = 3 * 4;
 
-// Cubo pequeño (1x1x1) posicionado encima del paralelepípedo base
+// Cubo posicionado encima del paralelepípedo base
 export const CUBO_VERTICES = new Float32Array([
   //   x      y      z    nx  ny  nz
   // +Z face (front)
   -0.1,  0.5,  2.6,    0,  0,  1, // bottom left
    0.1,  0.5,  2.6,    0,  0,  1, // bottom right
-   0.1,  0.63, 2.6,    0,  0,  1, // top right
-  -0.1,  0.63, 2.6,    0,  0,  1, // top left
+   0.1,  0.6, 2.6,    0,  0,  1, // top right
+  -0.1,  0.6, 2.6,    0,  0,  1, // top left
   
   // -Z face (back)
    0.1,  0.5,  2.4,    0,  0, -1,
   -0.1,  0.5,  2.4,    0,  0, -1,
-  -0.1,  0.63,  2.4,    0,  0, -1,
-   0.1,  0.63,  2.4,    0,  0, -1,
+  -0.1,  0.6,  2.4,    0,  0, -1,
+   0.1,  0.6,  2.4,    0,  0, -1,
   
   // +X face (right)
    0.1,  0.5,  2.6,    1,  0,  0,
    0.1,  0.5,  2.4,    1,  0,  0,
-   0.1,  0.63, 2.4,    1,  0,  0,
-   0.1,  0.63, 2.6,    1,  0,  0,
+   0.1,  0.6, 2.4,    1,  0,  0,
+   0.1,  0.6, 2.6,    1,  0,  0,
   
   // -X face (left)
   -0.1,  0.5,  2.4,   -1,  0,  0,
   -0.1,  0.5,  2.6,   -1,  0,  0,
-  -0.1,  0.63, 2.6,   -1,  0,  0,
-  -0.1,  0.63, 2.4,   -1,  0,  0,
+  -0.1,  0.6, 2.6,   -1,  0,  0,
+  -0.1,  0.6, 2.4,   -1,  0,  0,
   
   // +Y face (top)
-  -0.1,  0.63,  2.6,    0,  1,  0,
-   0.1,  0.63,  2.6,    0,  1,  0,
-   0.1,  0.63,  2.4,    0,  1,  0,
-  -0.1,  0.63,  2.4,    0,  1,  0,
+  -0.1,  0.6,  2.6,    0,  1,  0,
+   0.1,  0.6,  2.6,    0,  1,  0,
+   0.1,  0.6,  2.4,    0,  1,  0,
+  -0.1,  0.6,  2.4,    0,  1,  0,
   
   // -Y face (bottom)
   -0.1,  0.5,  2.4,    0, -1,  0,
    0.1,  0.5,  2.4,    0, -1,  0,
    0.1,  0.5,  2.6,    0, -1,  0,
   -0.1,  0.5,  2.6,    0, -1,  0,
+]);
+
+// Barras de poder
+export const BARRA = new Float32Array([
+  //  x      y     z     nx  ny  nz
+  -0.6,   0.6,  0.0,    0,  0,  1,  // Arriba izq
+  -0.3,  -0.6,  0.0,    0,  0,  1,  // Abajo izq
+   0.6,  -0.6,  0.0,    0,  0,  1,  // Abajo der
+   0.3,   0.6,  0.0,    0,  0,  1,  // Arriba der
+]);
+
+export const BARRA_INDICES = new Uint16Array([
+  0, 1, 2, // Triángulo inf izq
+  0, 2, 3  // Triángulo sup der
 ]);
 
 export function Esfera(radio: number, latitudes: number, longitudes: number) {
@@ -265,41 +281,53 @@ export interface Target {
 export function generarTargets(cantidad: number): Target[] {
   const targets: Target[] = [];
 
-  // 1. Límites del volumen visible en 16:9 y físicamente alcanzables
-  const yMin = 0.75;  // Centro mínimo (superficie inferior a 0.65, sobre Y=0.5)
-  const yMax = 1.25;  // Centro máximo (dentro del borde superior 16:9)
+  const z0 = 2.15; 
+  const y0 = 0.65; 
+  const g = 4.5;
+  const potencias = [1.8, 2.3, 2.75];
 
-  const zMin = 0.30;  // Límite de alcance lejano (cerca de Z = 0)
-  const zMax = 1.80;  // Límite cercano a la torreta (salida en Z = 2.15)
+  const stepAngulo = (80 - 15) / cantidad; 
+  const franjasAngulo = Array.from({ length: cantidad }, (_, i) => i);
+  const franjasT = Array.from({ length: cantidad }, (_, i) => i);
 
-  const xMin = -0.90; // Ancho lateral visible sin recortes
-  const xMax = 0.90;
-
-  // 2. Tamaño de franja única para cada eje
-  const stepY = (yMax - yMin) / cantidad;
-  const stepZ = (zMax - zMin) / cantidad;
-
-  const franjasY = Array.from({ length: cantidad }, (_, i) => i);
-  const franjasZ = Array.from({ length: cantidad }, (_, i) => i);
-
-  // 3. Fisher-Yates para garantizar que ninguna esfera comparta Y ni Z
+  // Fisher-Yates
   for (let i = cantidad - 1; i > 0; i--) {
-    const jY = Math.floor(Math.random() * (i + 1));
-    [franjasY[i], franjasY[jY]] = [franjasY[jY], franjasY[i]];
+    const jA = Math.floor(Math.random() * (i + 1));
+    [franjasAngulo[i], franjasAngulo[jA]] = [franjasAngulo[jA], franjasAngulo[i]];
 
-    const jZ = Math.floor(Math.random() * (i + 1));
-    [franjasZ[i], franjasZ[jZ]] = [franjasZ[jZ], franjasZ[i]];
+    const jT = Math.floor(Math.random() * (i + 1));
+    [franjasT[i], franjasT[jT]] = [franjasT[jT], franjasT[i]];
   }
 
-  // 4. Construcción de coordenadas únicas dentro del volumen
   for (let i = 0; i < cantidad; i++) {
-    const binY = franjasY[i];
-    const binZ = franjasZ[i];
+    const v0 = potencias[Math.floor(Math.random() * potencias.length)];
+    
+    let angulo = 15 + franjasAngulo[i] * stepAngulo + Math.random() * (stepAngulo * 0.75);
+    let anguloRad = (angulo * Math.PI) / 180;
 
-    // Asignación de franja exclusiva con pequeña variación interna (75%)
-    const y = yMin + binY * stepY + Math.random() * (stepY * 0.75);
-    const z = zMin + binZ * stepZ + Math.random() * (stepZ * 0.75);
-    const x = xMin + Math.random() * (xMax - xMin);
+    // SALVAGUARDA 1: Evitar que el pico de la parábola supere Y = 1.25 (Techo)
+    const maxV0y = 2.323; // sqrt(2 * g * (1.25 - y0))
+    if (v0 * Math.sin(anguloRad) > maxV0y) {
+      anguloRad = Math.asin(maxV0y / v0); 
+    }
+
+    const v0y = v0 * Math.sin(anguloRad);
+    const v0x = v0 * Math.cos(anguloRad);
+
+    // SALVAGUARDA 2: Evitar que se vaya más atrás de Z = 0.30 y que atraviese el piso
+    const tMaxZ = (z0 - 0.30) / v0x; 
+    const tMaxY = (v0y + Math.sqrt(v0y * v0y + 2 * g * (y0 - 0.60))) / g; 
+    
+    // El tiempo máximo permitido es el límite que cruce primero (Z lejano o Suelo)
+    const tMax = Math.min(tMaxZ, tMaxY); 
+
+    // Aplicar Fisher-Yates dentro del tiempo de vuelo VÁLIDO de esta trayectoria
+    const tStep = (tMax - 0.2) / cantidad;
+    const t = 0.2 + franjasT[i] * tStep + Math.random() * (tStep * 0.75);
+
+    const z = z0 - v0x * t;
+    const y = y0 + v0y * t - 0.5 * g * t * t;
+    const x = -0.75 + Math.random() * 1.5; 
 
     targets.push({
       position: [x, y, z],
