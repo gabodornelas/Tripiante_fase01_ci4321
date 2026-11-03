@@ -109,11 +109,11 @@ export const CUBO_VERTICES = new Float32Array([
 
 // Barras de poder
 export const BARRA = new Float32Array([
-  //  x      y     z     nx  ny  nz
-  -0.6,   0.6,  0.0,    0,  0,  1,  // Arriba izq
-  -0.3,  -0.6,  0.0,    0,  0,  1,  // Abajo izq
-   0.6,  -0.6,  0.0,    0,  0,  1,  // Abajo der
-   0.3,   0.6,  0.0,    0,  0,  1,  // Arriba der
+  //     x         y       z     nx  ny  nz
+  -0.072,  0.0072,  0.0,    0,  0,  1,  // Arriba izq
+  -0.036, -0.0072,  0.0,    0,  0,  1,  // Abajo izq
+   0.072, -0.0072,  0.0,    0,  0,  1,  // Abajo der
+   0.036,  0.0072,  0.0,    0,  0,  1,  // Arriba der
 ]);
 
 export const BARRA_INDICES = new Uint16Array([

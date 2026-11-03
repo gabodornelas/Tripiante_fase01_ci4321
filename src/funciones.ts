@@ -122,7 +122,7 @@ export function detectarColisiones(state: State): void {
     const dy = state.bala.posicion[1] - target.posicion[1];
     const dz = state.bala.posicion[2] - target.posicion[2];
 
-    // 2. Magnitud al cuadrado (Evitamos Math.sqrt)
+    // 2. Magnitud al cuadrado
     const distanciaCuadrada = dx * dx + dy * dy + dz * dz;
 
     // 3. Suma de los radios al cuadrado
@@ -131,10 +131,10 @@ export function detectarColisiones(state: State): void {
     // 4. Comprobar superposición
     if (distanciaCuadrada < sumaRadios * sumaRadios) {
       // ¡Colisión detectada!
-      target.activo = false;       // Desactivar el objetivo
-      state.bala.activo = false; // Ocultar/Destruir la bala
+      target.activo = false;     // Desactivar el objetivo
+      state.bala.activo = false; // Ocultar la bala
       crearExplosion([ target.posicion[0], target.posicion[1], target.posicion[2]], state);
-      // Guardar el historial de bala destruida
+      // Guardar el historial del target destruida
       state.targetHistory.push({ ...target });
       // Salir del bucle para que una misma bala no destruya dos objetivos a la vez
       break; 
@@ -159,8 +159,6 @@ export function crearExplosion(centro: [number, number, number], state: State): 
     });
   }
 }
-
-
 
 export function actualizarParticulas(dt: number, state: State): void {
   // Iterar en reversa para poder eliminar elementos del arreglo sin romper el índice

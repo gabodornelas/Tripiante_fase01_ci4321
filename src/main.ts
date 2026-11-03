@@ -294,18 +294,17 @@ function render(gl: WebGL2RenderingContext, ff: FF, vaoPlano: WebGLVertexArrayOb
   // Draw barras
   for (let i = 0; i < 3; i++) {
     const modelBarra = mat4.create();
-    // 1. Posición: X sigue al cubo, Y sube con cada iteración, Z está apenas frente a la cara (2.601)
+    // Posición: X sigue al cubo, Y sube con cada iteración, Z está apenas frente a la cara (2.601)
     const yPos = 0.52 + (i * 0.03); 
     mat4.translate(modelBarra, modelBarra, [state.cuboX, yPos, 2.601]);
-    // 2. Escala: El SQUARE original mide 1.2x1.2. Lo reducimos a una franja delgada y ancha.
-    mat4.scale(modelBarra, modelBarra, [0.12, 0.012, 1.0]);
+    
     ff.setModelMatrix(modelBarra);
     ff.setNormalMatrix(mat3.normalFromMat4(normalMatrix, modelBarra));
-    // 3. Color: Se ilumina si el nivel de potencia actual es mayor o igual al índice de esta barra
+    // Color: Se ilumina si el nivel de potencia actual es mayor o igual al índice de esta barra
     const color = (i <= state.poder) ? COLORS[4] : COLORS[5];
     ff.setMaterial({ ambient: color, diffuse: color });
     gl.bindVertexArray(vaoBarra);
-    ff.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); // 6 es la longitud de SQUARE_INDICES
+    ff.drawElements(gl.TRIANGLES, BARRA_INDICES.length, gl.UNSIGNED_SHORT, 0);
   }
   // Draw esfera
   mat4.translate(model, model, [0, 0.61, 2.5]);
@@ -364,7 +363,7 @@ function render(gl: WebGL2RenderingContext, ff: FF, vaoPlano: WebGLVertexArrayOb
     const modelParticula = mat4.create();
     mat4.fromTranslation(modelParticula, p.posicion);
 
-    // Escalar: Comienzan en 0.05 y se reducen a 0 a medida que mueren
+    // Escalar: Comienzan en 0.15 y se reducen a 0 a medida que mueren
     const scale = 0.15 * (p.vida / p.maxVida);
     mat4.scale(modelParticula, modelParticula, [scale, scale, scale]);
 
@@ -373,7 +372,7 @@ function render(gl: WebGL2RenderingContext, ff: FF, vaoPlano: WebGLVertexArrayOb
     
     ff.setMaterial({ ambient: [1.0, 0.5, 0.0, 1.0], diffuse: [1.0, 0.5, 0.0, 1.0] });
 
-    gl.bindVertexArray(vaoCubo); // Asegúrate de usar el VAO de tu cubo o esfera pequeño
+    gl.bindVertexArray(vaoCubo); // Usamos Cubo porque parecen pedazos rotos
     ff.drawElements(gl.TRIANGLES, INDICES.length, gl.UNSIGNED_SHORT, 0);
   }
 }
@@ -419,7 +418,7 @@ function run(canvas: HTMLCanvasElement): void {
     // rAF pauses in hidden tabs. On return, (now - last) would be huge, so cap dt.
     const dt = Math.min((now - last) / 1000, MAX_DT);
     last = now;
-    //processInput();
+
     update(dt);
     render(gl, ff, vaoPlano, vaoCubo, vaoBarra, vaoEsfera, dataEsfera.cantidadIndices, vaoCilindro, dataCilindro.cantidadIndices);
     requestAnimationFrame(frame);
