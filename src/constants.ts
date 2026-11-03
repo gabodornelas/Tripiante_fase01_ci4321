@@ -43,15 +43,15 @@ export const PLANO_VERTICES = new Float32Array([
   -1.5, 0.5, 3,  -1,  0,  0,
   -1.5, 0.5, 0,  -1,  0,  0,
   // +Y face (top)
-  -1.5, 0,   3,   0,  1,  0,
-   1.5, 0,   3,   0,  1,  0,
-   1.5, 0.5, 0,   0,  1,  0,
-  -1.5, 0.5, 0,   0,  1,  0,
+  -1.5, 0.5,   3,   0,  1,  0,
+   1.5, 0.5,   3,   0,  1,  0,
+   1.5, 0.5,   0,   0,  1,  0,
+  -1.5, 0.5,   0,   0,  1,  0,
   // -Y face (bottom)
   -1.5, 0,   0,   0, -1,  0,
    1.5, 0,   0,   0, -1,  0,
-   1.5, 0.5, 3,   0, -1,  0,
-  -1.5, 0.5, 3,   0, -1,  0,
+   1.5, 0,   3,   0, -1,  0,
+  -1.5, 0,   3,   0, -1,  0,
 ]);
 
 /** Two triangles per face, 36 indices. Each face: (0, 1, 2) and (0, 2, 3), both counter-clockwise. */
@@ -162,30 +162,9 @@ export function Esfera(radio: number, latitudes: number, longitudes: number) {
       const segundo = primero + longitudes + 1;
 
       // Sentido antihorario para los dos triángulos de cada "pixel"
-      indices.push(primero, segundo, primero + 1);
-      indices.push(segundo, segundo + 1, primero + 1);
+      indices.push(primero, primero + 1, segundo);
+      indices.push(segundo, primero + 1, segundo + 1);
     }
-  }
-  const centroBaseIndex = vertices.length / 6;
-  // Vértice central del disco base (apuntando la normal hacia abajo: ny = -1)
-  vertices.push(0, 0, 0, 0, -1, 0);
-
-  const baseInicioIndex = centroBaseIndex + 1;
-  for (let lon = 0; lon <= longitudes; lon++) {
-    const phi = (lon * 2 * Math.PI) / longitudes;
-    const x = radio * Math.cos(phi);
-    const z = radio * Math.sin(phi);
-    // Vértices del borde del disco
-    vertices.push(x, 0, z, 0, -1, 0);
-  }
-
-  // Triángulos del disco base
-  for (let lon = 0; lon < longitudes; lon++) {
-    indices.push(
-      centroBaseIndex,
-      baseInicioIndex + lon + 1,
-      baseInicioIndex + lon
-    );
   }
   return {
     vertices: new Float32Array(vertices), 
@@ -221,8 +200,8 @@ export function Cilindro(radio: number, altura: number, segmentos: number = 16) 
     const vBase2 = (i + 1) * 2;
     const vTope2 = (i + 1) * 2 + 1;
 
-    indices.push(vBase1, vBase2, vTope1);
-    indices.push(vTope1, vBase2, vTope2);
+    indices.push(vBase1, vTope1, vBase2);
+    indices.push(vTope1, vTope2, vBase2);
   }
 
   // 2. Tapa superior (Y = altura, normal = [0, 1, 0])
@@ -236,7 +215,7 @@ export function Cilindro(radio: number, altura: number, segmentos: number = 16) 
   }
 
   for (let i = 0; i < segmentos; i++) {
-    indices.push(centroTopeIdx, inicioTopeIdx + i, inicioTopeIdx + i + 1);
+    indices.push(centroTopeIdx, inicioTopeIdx + i + 1, inicioTopeIdx + i);
   }
 
   // 3. Tapa inferior (Y = 0, normal = [0, -1, 0])
@@ -250,7 +229,7 @@ export function Cilindro(radio: number, altura: number, segmentos: number = 16) 
   }
 
   for (let i = 0; i < segmentos; i++) {
-    indices.push(centroBaseIdx, inicioBaseIdx + i + 1, inicioBaseIdx + i);
+    indices.push(centroBaseIdx, inicioBaseIdx + i, inicioBaseIdx + i + 1);
   }
 
   return {

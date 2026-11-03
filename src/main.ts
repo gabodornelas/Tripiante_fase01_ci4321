@@ -1,4 +1,3 @@
-// Rotating cube, FixedFunction (FF) version.
 import './style.css';
 import { mat3, mat4 } from 'gl-matrix';
 import { ATTRIB, createFixedFunction, LIGHTING } from './vendor/ff/ff';
@@ -32,7 +31,6 @@ type FF = ReturnType<typeof createFixedFunction>;
 
 const CUBE_SPEED = 0.5; // Unidades que se mueve por segundo
 const CYLINDER_SPEED = 60;
-//const ROTATION_SPEED = 0.8; 
 const MAX_DT = 0.1; // seconds
 
 // Step 1. Get the WebGL2 context.
@@ -104,15 +102,12 @@ function setupScene(ff: FF): void {
 
 // ---------------------------------------------------------------------------
 // Game loop. Every frame does three separate phases:
-//   1. processInput: read what the user did.
-//   2. update(dt): advance the simulation by the elapsed time dt.
-//   3. render: draw the current state.
+//   1. update(dt): advance the simulation by the elapsed time dt.
+//   2. render: draw the current state.
 // Keep the phases apart: render never changes the state, and update never calls WebGL.
 // ---------------------------------------------------------------------------
 
 // Game state: everything the simulation needs, nothing about WebGL.
-//const state = { angle: 0, colorIndex: 0, rotating: true };
-
 const state: State = {
   cuboX: 0,
   colorIndex: 0,
@@ -135,14 +130,11 @@ const state: State = {
 };
 
 // Input: the keydown listener only records presses. processInput handles them later, once per frame.
-//let spacePressed = false;
-//let rPressed = false;
 
 let leftPressed = false;
 let rightPressed = false;
 let upPressed = false;
 let downPressed = false;
-
 
 function setupInput(): void {
   window.addEventListener('keydown', (e) => {
@@ -159,13 +151,13 @@ function setupInput(): void {
       // Reconstruir la matriz del cilindro en el instante exacto del input
       const modelCilindro = mat4.create();
       mat4.translate(modelCilindro, modelCilindro, [state.cuboX, 0, 0]);
-      mat4.translate(modelCilindro, modelCilindro, [0, 0.63, 2.3]);
-      mat4.translate(modelCilindro, modelCilindro, [0, 0.035, 0]);
+      mat4.translate(modelCilindro, modelCilindro, [0, 0.61, 2.5]);
+      mat4.translate(modelCilindro, modelCilindro, [0, 0.025, 0]);
 
       const anguloInclinacionRad = ((90 - state.anguloCanon) * Math.PI) / 180;
       mat4.rotateX(modelCilindro, modelCilindro, -anguloInclinacionRad);
 
-      disparar(modelCilindro, 0.4, state);
+      disparar(modelCilindro, 0.165, state);
     }
     if (e.code === 'KeyR' && !state.isRewinding) {
       state.isRewinding = true;
@@ -197,17 +189,8 @@ function setupInput(): void {
   });
 }
 
-// Loop phase 1. Space selects the next color. R toggles the rotation.
-// Each flag is cleared after use, so each press counts once.
-//
-//function processInput(): void {
-  //if (spacePressed) state.colorIndex = (state.colorIndex + 1) % COLORS.length;
-  //if (rPressed) state.rotating = !state.rotating;
-  //spacePressed = false;
-  //rPressed = false;
-//}
 
-// Loop phase 2.
+// Loop phase
 function update(dt: number): void {
   if (state.isRewinding) {
     const REWIND_SPEED = 1.0; // Velocidad del efecto (1.0 = toma 2 segundos total)
@@ -276,16 +259,16 @@ function update(dt: number): void {
   //if (state.rotating) state.angle += ROTATION_SPEED * dt; // paused: the angle keeps its value
   if (leftPressed && state.cuboX > -0.65) state.cuboX -= CUBE_SPEED * dt;
   if (rightPressed && state.cuboX < 0.65) state.cuboX += CUBE_SPEED * dt;
-  if (upPressed && state.anguloCanon > 5) state.anguloCanon -= CYLINDER_SPEED * dt;
-  if (downPressed && state.anguloCanon < 90) state.anguloCanon += CYLINDER_SPEED * dt;
+  if (upPressed && state.anguloCanon - CYLINDER_SPEED * dt > 5) state.anguloCanon -= CYLINDER_SPEED * dt;
+  if (downPressed && state.anguloCanon + CYLINDER_SPEED * dt < 90) state.anguloCanon += CYLINDER_SPEED * dt;
   
   actualizarFisica(dt, state);
   actualizarParticulas(dt, state);
 }
 
-// Loop phase 3. Draw the current state. render reads the state and never changes it.
+// Loop phase. Draw the current state. render reads the state and never changes it.
 // setMaterial runs every frame, so FF re-uploads the material each frame. That costs a few
-// uniforms and keeps render simple. Exercise: set the material only when colorIndex changes.
+// uniforms and keeps render simple.
 const model = mat4.create();
 const normalMatrix = mat3.create();
 

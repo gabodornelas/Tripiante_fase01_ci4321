@@ -35,64 +35,55 @@ export function disparar(modelCilindro: mat4, alturaCilindro: number, state: Sta
 }
 
 export function generarTargets(cantidad: number): Target[] {
-  const targets: Target[] = [];
-
-  const z0 = 2.15; 
-  const y0 = 0.65; 
   const g = 4.5;
-  const potencias = [1.8, 2.3, 2.75];
 
-  const stepAngulo = (80 - 15) / cantidad; 
-  const franjasAngulo = Array.from({ length: cantidad }, (_, i) => i);
-  const franjasT = Array.from({ length: cantidad }, (_, i) => i);
+  // Pivote del tubo y bala en reposo (deben coincidir con main.ts)
+  const PIVOTE_Y = 0.635; // 0.61 (esfera) + 0.025 (pivote del tubo)
+  const PIVOTE_Z = 2.5;
+  const L = 0.165;        // distancia de la bala en reposo a lo largo del tubo
 
-  // Fisher-Yates
-  for (let i = cantidad - 1; i > 0; i--) {
-    const jA = Math.floor(Math.random() * (i + 1));
-    [franjasAngulo[i], franjasAngulo[jA]] = [franjasAngulo[jA], franjasAngulo[i]];
+  // Rangos permitidos: sobre el suelo y visibles por la cámara
+  const Y_MIN = 0.75, Y_MAX = 1.15;
+  const Z_MIN = 0.5,  Z_MAX = 2.1;
+  const X_MAX = 0.6;               // dentro del recorrido de la torreta (±0.65)
+  const SEP_Y = 0.12, SEP_Z = 0.2; // separación mínima entre objetivos
 
-    const jT = Math.floor(Math.random() * (i + 1));
-    [franjasT[i], franjasT[jT]] = [franjasT[jT], franjasT[i]];
-  }
+  for (let intento = 0; intento < 1000; intento++) {
+    const targets: Target[] = [];
 
-  for (let i = 0; i < cantidad; i++) {
-    const v0 = potencias[Math.floor(Math.random() * potencias.length)];
-    
-    let angulo = 15 + franjasAngulo[i] * stepAngulo + Math.random() * (stepAngulo * 0.75);
-    let anguloRad = (angulo * Math.PI) / 180;
+    for (let i = 0; i < cantidad; i++) {
+      // Objetivo i -> nivel de fuerza i: cada nivel tiene al menos uno alcanzable
+      const v0 = POTENCIAS[i % POTENCIAS.length];
+      let colocado = false;
 
-    // SALVAGUARDA 1: Evitar que el pico de la parábola supere Y = 1.25 (Techo)
-    const maxV0y = 2.323; // sqrt(2 * g * (1.25 - y0))
-    if (v0 * Math.sin(anguloRad) > maxV0y) {
-      anguloRad = Math.asin(maxV0y / v0); 
+      for (let k = 0; k < 500 && !colocado; k++) {
+        // Punto de una trayectoria real: ángulo y tiempo de vuelo aleatorios
+        const ang = ((10 + Math.random() * 78) * Math.PI) / 180;
+        const t = 0.15 + Math.random() * 1.2;
+
+        const y0 = PIVOTE_Y + L * Math.sin(ang);
+        const z0 = PIVOTE_Z - L * Math.cos(ang);
+        const y = y0 + v0 * Math.sin(ang) * t - 0.5 * g * t * t;
+        const z = z0 - v0 * Math.cos(ang) * t;
+
+        if (y < Y_MIN || y > Y_MAX || z < Z_MIN || z > Z_MAX) continue;
+
+        // Profundidad Y altura distintas respecto a los ya colocados
+        const choca = targets.some(
+          (o) => Math.abs(o.posicion[1] - y) < SEP_Y || Math.abs(o.posicion[2] - z) < SEP_Z
+        );
+        if (choca) continue;
+
+        const x = -X_MAX + Math.random() * 2 * X_MAX;
+        targets.push({ posicion: [x, y, z], activo: true, radio: 0.06 });
+        colocado = true;
+      }
+      if (!colocado) break; // reintentar todo (en la práctica casi nunca ocurre)
     }
 
-    const v0y = v0 * Math.sin(anguloRad);
-    const v0x = v0 * Math.cos(anguloRad);
-
-    // SALVAGUARDA 2: Evitar que se vaya más atrás de Z = 0.30 y que atraviese el piso
-    const tMaxZ = (z0 - 0.30) / v0x; 
-    const tMaxY = (v0y + Math.sqrt(v0y * v0y + 2 * g * (y0 - 0.60))) / g; 
-    
-    // El tiempo máximo permitido es el límite que cruce primero (Z lejano o Suelo)
-    const tMax = Math.min(tMaxZ, tMaxY); 
-
-    // Aplicar Fisher-Yates dentro del tiempo de vuelo VÁLIDO de esta trayectoria
-    const tStep = (tMax - 0.2) / cantidad;
-    const t = 0.2 + franjasT[i] * tStep + Math.random() * (tStep * 0.75);
-
-    const z = z0 - v0x * t;
-    const y = y0 + v0y * t - 0.5 * g * t * t;
-    const x = -0.75 + Math.random() * 1.5; 
-
-    targets.push({
-      posicion: [x, y, z],
-      activo: true,
-      radio: 0.1
-    });
+    if (targets.length === cantidad) return targets;
   }
-
-  return targets;
+  return [];
 }
 
 export function actualizarFisica(deltaTime: number, state: State) {
@@ -101,14 +92,13 @@ export function actualizarFisica(deltaTime: number, state: State) {
   const b = state.bala;
 
   // 1. Integración de movimiento parabólico
-  b.velocidad[1] -= 4.5 * deltaTime; // Disminuir velocidad vertical por gravedad
-
   b.posicion[0] += b.velocidad[0] * deltaTime;
-  b.posicion[1] += b.velocidad[1] * deltaTime;
+  b.posicion[1] += b.velocidad[1] * deltaTime - 0.5 * 4.5 * deltaTime * deltaTime;
   b.posicion[2] += b.velocidad[2] * deltaTime;
+  b.velocidad[1] -= 4.5 * deltaTime;
 
   // 2. Colisión con el Piso / Base (Y <= 0.5)
-  if (b.posicion[1] - 0.015 <= 0.5) {
+  if (b.posicion[1] - 0.024 <= 0.5) {
     b.activo = false; // Desaparece la bala al tocar el suelo
     return;
   }
@@ -136,7 +126,7 @@ export function detectarColisiones(state: State): void {
     const distanciaCuadrada = dx * dx + dy * dy + dz * dz;
 
     // 3. Suma de los radios al cuadrado
-    const sumaRadios = 0.015 + target.radio;
+    const sumaRadios = 0.024 + target.radio;
 
     // 4. Comprobar superposición
     if (distanciaCuadrada < sumaRadios * sumaRadios) {
