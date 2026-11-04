@@ -1,6 +1,8 @@
 # Torreta arrojadora de esferas: Fase 1
 
-A torreta standing on a floor throwing sphares on targets. The example uses the FixedFunction (FF) module, so no shader code appears in the example. The code shows the game loop that drives the animation.
+By Gabriel De Ornelas from `Tripiante`
+
+A torret standing on a floor throwing spheres at targets. The example uses the FixedFunction (FF) module, so no shader code appears in the example. The code shows the game loop that drives the animation.
 
 ## Requirements
 
@@ -24,19 +26,19 @@ A torreta standing on a floor throwing sphares on targets. The example uses the 
 
 3. Open `http://localhost:5173` in your browser.
 
-## Use
+## Controls
 
-- Press `Space` to change the cube color. The color cycles yellow → cyan → magenta → yellow.
-- Press `R` to stop or restart the rotation.
-- Holding a key counts as one press. Key auto-repeat is ignored.
+- Press `←` or `→` to move the tank across the X axis.
+- Press `↑` or `↓` to adjust the angle of the cannon.
+- Press `Space` to shoot the bullet.
+- Press `R` to restart the game.
 
 ## Game loop
 
-Each frame runs three steps in this order:
+Each frame runs two steps in this order:
 
-1. `processInput` handles the `Space` and `R` presses recorded since the last frame.
-2. `update(dt)` changes the rotation angle.
-3. `render` draws the scene.
+1. `update(dt)` changes the state of the figures according to the action that was played.
+2. `render` draws the scene.
 
 `dt` is the time since the last frame, in seconds. The value is clamped to 0.1 s. A hidden tab does not make the cube jump when the tab becomes visible again. The rotation speed is in radians per second. The cube turns at the same speed on a 60 Hz display and on a 120 Hz display.
 
@@ -52,7 +54,8 @@ Each frame runs three steps in this order:
 ```
 index.html                 page markup
 src/main.ts                WebGL setup, the game loop, and the canvas
-src/constants.ts           geometry, colors, and clear color (#1b1e2b)
+src/constants.ts           geometry, colors, interfaces, Cilindro and Esfera functions.
+src/funciones.ts           relevant functions.
 src/vendor/ff/             FF v1.0 (read only; do not edit)
 ```
 
